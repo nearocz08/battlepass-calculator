@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Battle Pass Calculator</title>
+
+<style>
+  body {
+    font-family: Arial;
+    background: #111;
+    color: #fff;
+    padding: 20px;
+    max-width: 500px;
+    margin: auto;
+  }
+
+  input, button {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0 15px;
+    border-radius: 8px;
+    border: none;
+  }
+
+  button {
+    background: gold;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  h2, h3 {
+    color: gold;
+  }
+
+  .box {
+    background: #222;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>🔥 Battle Pass Calculator</h2>
+
+<div class="box">
+เลเวลปัจจุบัน:
+<input type="number" id="current" value="0">
+
+เลเวลเป้าหมาย:
+<input type="number" id="target" value="100">
+
+วันที่เริ่ม Weekly:
+<input type="date" id="start">
+</div>
+
+<div class="box">
+<h3>🟡 Daily</h3>
+✔ ฆ่ามอน (20 แต้ม/วัน) = เปิดตลอด<br><br>
+
+<input type="checkbox" id="dailyMoney"> ทำเควสเงิน (+30)<br>
+ทำกี่วัน:
+<input type="number" id="dailyDays" value="999">
+</div>
+
+<div class="box">
+<h3>🔵 Weekly</h3>
+✔ ฆ่าบอส (+70/สัปดาห์) = เปิดตลอด<br><br>
+
+<input type="checkbox" id="weeklyMoney"> ทำเควสเงิน (+30)<br>
+ทำกี่สัปดาห์:
+<input type="number" id="weeklyWeeks" value="999">
+</div>
+
+<button onclick="calc()">คำนวณ</button>
+
+<div class="box">
+<h3>📊 ผลลัพธ์</h3>
+<div id="result">กรอกข้อมูลแล้วกดคำนวณ</div>
+</div>
+
+<script>
+function levelToExp(level){
+  if(level <= 0) return 0;
+  return 50 + (level - 1) * 10;
+}
+
+function calc(){
+  let current = Number(document.getElementById("current").value);
+  let target = Number(document.getElementById("target").value);
+  let startDate = new Date(document.getElementById("start").value);
+
+  let useDailyMoney = document.getElementById("dailyMoney").checked;
+  let dailyMoneyDays = Number(document.getElementById("dailyDays").value);
+
+  let useWeeklyMoney = document.getElementById("weeklyMoney").checked;
+  let weeklyMoneyWeeks = Number(document.getElementById("weeklyWeeks").value);
+
+  let currentExp = levelToExp(current);
+  let targetExp = levelToExp(target);
+
+  let today = new Date("2026-04-22");
+  let endDate = new Date("2026-06-24");
+
+  let exp = currentExp;
+  let days = 0;
+  let weeklyCount = 0;
+
+  while(exp < targetExp && today <= endDate){
+    days++;
+
+    // DAILY
+    exp += 20;
+
+    if(useDailyMoney && days <= dailyMoneyDays){
+      exp += 30;
+    }
+
+    // WEEKLY
+    let diff = Math.floor((today - startDate) / (1000*60*60*24));
+
+    if(diff >= 0 && diff % 7 === 0){
+      exp += 70;
+
+      if(useWeeklyMoney && weeklyCount < weeklyMoneyWeeks){
+        exp += 30;
+      }
+
+      weeklyCount++;
+    }
+
+    today.setDate(today.getDate() + 1);
+  }
+
+  let success = exp >= targetExp;
+  let remain = Math.max(0, targetExp - currentExp);
+
+  document.getElementById("result").innerHTML = `
+    📅 ถึงเลเวลวันที่: ${today.toLocaleDateString()}<br><br>
+    ⏳ ใช้เวลา: ${days} วัน<br>
+    🔁 Weekly ทำ: ${weeklyCount} ครั้ง<br><br>
+    ⭐ ต้องใช้เพิ่ม: ${remain} แต้ม<br><br>
+    🎯 สถานะ: ${success ? "ทัน ✅" : "ไม่ทัน ❌"}
+  `;
+
+  // แชร์ลิงก์
+  let url = `?c=${current}&t=${target}&s=${startDate.toISOString()}&dm=${useDailyMoney}&dd=${dailyMoneyDays}&wm=${useWeeklyMoney}&ww=${weeklyMoneyWeeks}`;
+  history.pushState({}, "", url);
+}
+
+// โหลดค่าจาก URL
+window.onload = () => {
+  let p = new URLSearchParams(location.search);
+
+  if(p.get("c")){
+    document.getElementById("current").value = p.get("c");
+    document.getElementById("target").value = p.get("t");
+    document.getElementById("start").value = p.get("s").split("T")[0];
+
+    document.getElementById("dailyMoney").checked = p.get("dm") === "true";
+    document.getElementById("dailyDays").value = p.get("dd");
+
+    document.getElementById("weeklyMoney").checked = p.get("wm") === "true";
+    document.getElementById("weeklyWeeks").value = p.get("ww");
+
+    calc();
+  }
+}
+</script>
+
+</body>
+</html>
