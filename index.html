@@ -2,49 +2,48 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Battle Pass Calculator</title>
+<title>Battle Pass Calculator PRO</title>
 
 <style>
-  body {
-    font-family: Arial;
-    background: #111;
-    color: #fff;
-    padding: 20px;
-    max-width: 500px;
-    margin: auto;
-  }
+body {
+  font-family: Arial;
+  background: #0f0f0f;
+  color: #fff;
+  padding: 20px;
+  max-width: 520px;
+  margin: auto;
+}
 
-  input, button {
-    width: 100%;
-    padding: 8px;
-    margin: 5px 0 15px;
-    border-radius: 8px;
-    border: none;
-  }
+h2 { color: gold; }
 
-  button {
-    background: gold;
-    color: black;
-    font-weight: bold;
-    cursor: pointer;
-  }
+.box {
+  background: #1c1c1c;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
 
-  h2, h3 {
-    color: gold;
-  }
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: none;
+}
 
-  .box {
-    background: #222;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-  }
+button {
+  background: gold;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.result { line-height: 1.6; }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Battle Pass Calculator</h2>
+<h2>🔥 Battle Pass Calculator PRO</h2>
 
 <div class="box">
 เลเวลปัจจุบัน:
@@ -53,33 +52,32 @@
 เลเวลเป้าหมาย:
 <input type="number" id="target" value="100">
 
-วันที่เริ่ม Weekly:
-<input type="date" id="start">
+วันที่ทำ Weekly ล่าสุด:
+<input type="date" id="lastWeekly">
 </div>
 
 <div class="box">
 <h3>🟡 Daily</h3>
-✔ ฆ่ามอน (20 แต้ม/วัน) = เปิดตลอด<br><br>
+✔ ฆ่ามอน (20/วัน)<br>
 
-<input type="checkbox" id="dailyMoney"> ทำเควสเงิน (+30)<br>
+<input type="checkbox" id="dailyMoney"> เควสเงิน (+30)<br>
 ทำกี่วัน:
 <input type="number" id="dailyDays" value="999">
 </div>
 
 <div class="box">
 <h3>🔵 Weekly</h3>
-✔ ฆ่าบอส (+70/สัปดาห์) = เปิดตลอด<br><br>
+✔ ฆ่าบอส (+70)<br>
 
-<input type="checkbox" id="weeklyMoney"> ทำเควสเงิน (+30)<br>
+<input type="checkbox" id="weeklyMoney"> เควสเงิน (+30)<br>
 ทำกี่สัปดาห์:
 <input type="number" id="weeklyWeeks" value="999">
 </div>
 
 <button onclick="calc()">คำนวณ</button>
 
-<div class="box">
-<h3>📊 ผลลัพธ์</h3>
-<div id="result">กรอกข้อมูลแล้วกดคำนวณ</div>
+<div class="box result" id="result">
+กรอกข้อมูลแล้วกดคำนวณ
 </div>
 
 <script>
@@ -89,82 +87,109 @@ function levelToExp(level){
 }
 
 function calc(){
-  let current = Number(document.getElementById("current").value);
-  let target = Number(document.getElementById("target").value);
-  let startDate = new Date(document.getElementById("start").value);
+  let current = Number(currentEl.value);
+  let target = Number(targetEl.value);
+  let lastWeekly = new Date(lastWeeklyEl.value);
 
-  let useDailyMoney = document.getElementById("dailyMoney").checked;
-  let dailyMoneyDays = Number(document.getElementById("dailyDays").value);
+  let useDailyMoney = dailyMoneyEl.checked;
+  let dailyMoneyDays = Number(dailyDaysEl.value);
 
-  let useWeeklyMoney = document.getElementById("weeklyMoney").checked;
-  let weeklyMoneyWeeks = Number(document.getElementById("weeklyWeeks").value);
+  let useWeeklyMoney = weeklyMoneyEl.checked;
+  let weeklyMoneyWeeks = Number(weeklyWeeksEl.value);
 
-  let currentExp = levelToExp(current);
+  let start = new Date("2026-04-22");
+  let end = new Date("2026-06-24");
+
+  let today = new Date(start);
+  let exp = levelToExp(current);
   let targetExp = levelToExp(target);
 
-  let today = new Date("2026-04-22");
-  let endDate = new Date("2026-06-24");
-
-  let exp = currentExp;
   let days = 0;
   let weeklyCount = 0;
 
-  while(exp < targetExp && today <= endDate){
+  while(exp < targetExp && today <= end){
     days++;
 
     // DAILY
     exp += 20;
-
     if(useDailyMoney && days <= dailyMoneyDays){
       exp += 30;
     }
 
     // WEEKLY
-    let diff = Math.floor((today - startDate) / (1000*60*60*24));
+    let diff = Math.floor((today - lastWeekly) / (1000*60*60*24));
 
-    if(diff >= 0 && diff % 7 === 0){
-      exp += 70;
+    if(diff >= 7){
+      let times = Math.floor(diff / 7);
 
-      if(useWeeklyMoney && weeklyCount < weeklyMoneyWeeks){
-        exp += 30;
+      for(let i=0;i<times;i++){
+        if(today > end) break;
+
+        exp += 70;
+
+        if(useWeeklyMoney && weeklyCount < weeklyMoneyWeeks){
+          exp += 30;
+        }
+
+        weeklyCount++;
+        lastWeekly.setDate(lastWeekly.getDate() + 7);
       }
-
-      weeklyCount++;
     }
 
     today.setDate(today.getDate() + 1);
   }
 
   let success = exp >= targetExp;
-  let remain = Math.max(0, targetExp - currentExp);
+  let missing = Math.max(0, targetExp - exp);
+  let missingLevel = Math.ceil(missing / 10);
 
-  document.getElementById("result").innerHTML = `
-    📅 ถึงเลเวลวันที่: ${today.toLocaleDateString()}<br><br>
-    ⏳ ใช้เวลา: ${days} วัน<br>
-    🔁 Weekly ทำ: ${weeklyCount} ครั้ง<br><br>
-    ⭐ ต้องใช้เพิ่ม: ${remain} แต้ม<br><br>
-    🎯 สถานะ: ${success ? "ทัน ✅" : "ไม่ทัน ❌"}
+  result.innerHTML = `
+📅 ถึงเลเวลวันที่: ${today.toLocaleDateString()}<br><br>
+
+📦 แต้มทั้งหมดที่มี: ${exp}<br>
+🎯 แต้มที่ต้องใช้: ${targetExp}<br><br>
+
+❗ ขาดอีก: ${missing} แต้ม<br>
+📈 = ${missingLevel} เลเวล<br><br>
+
+⏳ ใช้เวลา: ${days} วัน<br>
+🔁 Weekly ทำ: ${weeklyCount} ครั้ง<br><br>
+
+🎯 สถานะ: ${success ? "ทัน ✅" : "ไม่ทัน ❌"}
   `;
 
   // แชร์ลิงก์
-  let url = `?c=${current}&t=${target}&s=${startDate.toISOString()}&dm=${useDailyMoney}&dd=${dailyMoneyDays}&wm=${useWeeklyMoney}&ww=${weeklyMoneyWeeks}`;
+  let url = `?c=${current}&t=${target}&lw=${lastWeeklyEl.value}&dm=${useDailyMoney}&dd=${dailyMoneyDays}&wm=${useWeeklyMoney}&ww=${weeklyMoneyWeeks}`;
   history.pushState({}, "", url);
 }
 
-// โหลดค่าจาก URL
+// bind
+const currentEl = document.getElementById("current");
+const targetEl = document.getElementById("target");
+const lastWeeklyEl = document.getElementById("lastWeekly");
+
+const dailyMoneyEl = document.getElementById("dailyMoney");
+const dailyDaysEl = document.getElementById("dailyDays");
+
+const weeklyMoneyEl = document.getElementById("weeklyMoney");
+const weeklyWeeksEl = document.getElementById("weeklyWeeks");
+
+const result = document.getElementById("result");
+
+// load จากลิงก์
 window.onload = () => {
   let p = new URLSearchParams(location.search);
 
   if(p.get("c")){
-    document.getElementById("current").value = p.get("c");
-    document.getElementById("target").value = p.get("t");
-    document.getElementById("start").value = p.get("s").split("T")[0];
+    currentEl.value = p.get("c");
+    targetEl.value = p.get("t");
+    lastWeeklyEl.value = p.get("lw");
 
-    document.getElementById("dailyMoney").checked = p.get("dm") === "true";
-    document.getElementById("dailyDays").value = p.get("dd");
+    dailyMoneyEl.checked = p.get("dm") === "true";
+    dailyDaysEl.value = p.get("dd");
 
-    document.getElementById("weeklyMoney").checked = p.get("wm") === "true";
-    document.getElementById("weeklyWeeks").value = p.get("ww");
+    weeklyMoneyEl.checked = p.get("wm") === "true";
+    weeklyWeeksEl.value = p.get("ww");
 
     calc();
   }
