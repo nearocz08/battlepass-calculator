@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Battle Pass Calculator PRO</title>
+<title>Battle Pass Calculator PRO+</title>
 
 <style>
 body {
@@ -13,7 +13,6 @@ body {
   max-width: 520px;
   margin: auto;
 }
-
 h2 { color: gold; }
 
 .box {
@@ -37,13 +36,16 @@ button {
   cursor: pointer;
 }
 
-.result { line-height: 1.6; }
+.small {
+  font-size: 12px;
+  color: #aaa;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Battle Pass Calculator PRO</h2>
+<h2>🔥 Battle Pass Calculator PRO+</h2>
 
 <div class="box">
 เลเวลปัจจุบัน:
@@ -58,27 +60,33 @@ button {
 
 <div class="box">
 <h3>🟡 Daily</h3>
-✔ ฆ่ามอน (20/วัน)<br>
+✔ ฆ่ามอน (+20/วัน)<br><br>
 
-<input type="checkbox" id="dailyMoney"> เควสเงิน (+30)<br>
+<label>
+<input type="checkbox" id="dailyMoney"> เควสเงิน (+30)
+</label>
+
 ทำกี่วัน:
 <input type="number" id="dailyDays" value="999">
 </div>
 
 <div class="box">
 <h3>🔵 Weekly</h3>
-✔ ฆ่าบอส (+70)<br>
+✔ ฆ่าบอส (+70)<br><br>
 
-<input type="checkbox" id="weeklyMoney"> เควสเงิน (+30)<br>
+<label>
+<input type="checkbox" id="weeklyMoney"> เควสเงิน (+30)
+</label>
+
 ทำกี่สัปดาห์:
 <input type="number" id="weeklyWeeks" value="999">
+
+<div class="small" id="weeklyInfo"></div>
 </div>
 
 <button onclick="calc()">คำนวณ</button>
 
-<div class="box result" id="result">
-กรอกข้อมูลแล้วกดคำนวณ
-</div>
+<div class="box" id="result"></div>
 
 <script>
 function levelToExp(level){
@@ -95,7 +103,7 @@ function calc(){
   let dailyMoneyDays = Number(dailyDaysEl.value);
 
   let useWeeklyMoney = weeklyMoneyEl.checked;
-  let weeklyMoneyWeeks = Number(weeklyWeeksEl.value);
+  let userWeeklyWeeks = Number(weeklyWeeksEl.value);
 
   let start = new Date("2026-04-22");
   let end = new Date("2026-06-24");
@@ -107,6 +115,24 @@ function calc(){
   let days = 0;
   let weeklyCount = 0;
 
+  // 🔥 คำนวณ weekly สูงสุดที่เป็นไปได้
+  let nextWeekly = new Date(lastWeekly);
+  nextWeekly.setDate(nextWeekly.getDate() + 7);
+
+  let maxWeekly = 0;
+  let temp = new Date(nextWeekly);
+
+  while(temp <= end){
+    maxWeekly++;
+    temp.setDate(temp.getDate() + 7);
+  }
+
+  // clamp
+  let weeklyLimit = Math.min(userWeeklyWeeks, maxWeekly);
+
+  weeklyInfo.innerHTML = `ทำได้สูงสุด: ${maxWeekly} ครั้ง`;
+
+  // 🔥 simulation ทีละวัน
   while(exp < targetExp && today <= end){
     days++;
 
@@ -116,24 +142,16 @@ function calc(){
       exp += 30;
     }
 
-    // WEEKLY
-    let diff = Math.floor((today - lastWeekly) / (1000*60*60*24));
+    // WEEKLY (เกิดตามวันจริง)
+    if(today >= nextWeekly && weeklyCount < weeklyLimit){
+      exp += 70;
 
-    if(diff >= 7){
-      let times = Math.floor(diff / 7);
-
-      for(let i=0;i<times;i++){
-        if(today > end) break;
-
-        exp += 70;
-
-        if(useWeeklyMoney && weeklyCount < weeklyMoneyWeeks){
-          exp += 30;
-        }
-
-        weeklyCount++;
-        lastWeekly.setDate(lastWeekly.getDate() + 7);
+      if(useWeeklyMoney){
+        exp += 30;
       }
+
+      weeklyCount++;
+      nextWeekly.setDate(nextWeekly.getDate() + 7);
     }
 
     today.setDate(today.getDate() + 1);
@@ -146,21 +164,16 @@ function calc(){
   result.innerHTML = `
 📅 ถึงเลเวลวันที่: ${today.toLocaleDateString()}<br><br>
 
-📦 แต้มทั้งหมดที่มี: ${exp}<br>
+📦 แต้มทั้งหมด: ${exp}<br>
 🎯 แต้มที่ต้องใช้: ${targetExp}<br><br>
 
-❗ ขาดอีก: ${missing} แต้ม<br>
-📈 = ${missingLevel} เลเวล<br><br>
+❗ ขาดอีก: ${missing} แต้ม (${missingLevel} เลเวล)<br><br>
 
 ⏳ ใช้เวลา: ${days} วัน<br>
-🔁 Weekly ทำ: ${weeklyCount} ครั้ง<br><br>
+🔁 Weekly ที่ใช้: ${weeklyCount}/${maxWeekly}<br><br>
 
 🎯 สถานะ: ${success ? "ทัน ✅" : "ไม่ทัน ❌"}
   `;
-
-  // แชร์ลิงก์
-  let url = `?c=${current}&t=${target}&lw=${lastWeeklyEl.value}&dm=${useDailyMoney}&dd=${dailyMoneyDays}&wm=${useWeeklyMoney}&ww=${weeklyMoneyWeeks}`;
-  history.pushState({}, "", url);
 }
 
 // bind
@@ -175,25 +188,7 @@ const weeklyMoneyEl = document.getElementById("weeklyMoney");
 const weeklyWeeksEl = document.getElementById("weeklyWeeks");
 
 const result = document.getElementById("result");
-
-// load จากลิงก์
-window.onload = () => {
-  let p = new URLSearchParams(location.search);
-
-  if(p.get("c")){
-    currentEl.value = p.get("c");
-    targetEl.value = p.get("t");
-    lastWeeklyEl.value = p.get("lw");
-
-    dailyMoneyEl.checked = p.get("dm") === "true";
-    dailyDaysEl.value = p.get("dd");
-
-    weeklyMoneyEl.checked = p.get("wm") === "true";
-    weeklyWeeksEl.value = p.get("ww");
-
-    calc();
-  }
-}
+const weeklyInfo = document.getElementById("weeklyInfo");
 </script>
 
 </body>
