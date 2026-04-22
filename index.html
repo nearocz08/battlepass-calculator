@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Battle Pass Calculator ULTIMATE</title>
+<title>Battle Pass Calculator FIXED</title>
 
 <style>
 body {
@@ -42,11 +42,9 @@ button {
 
 <body>
 
-<h2>🔥 Battle Pass Calculator ULTIMATE</h2>
+<h2>🔥 Battle Pass Calculator FIXED</h2>
 
 <div class="box">
-<h3>🎯 โหมดหา "ถึงเลเวล"</h3>
-
 เลเวลปัจจุบัน:
 <input type="number" id="current" value="0">
 
@@ -87,26 +85,9 @@ button {
 <div class="small" id="weeklyInfo"></div>
 </div>
 
-<button onclick="calcGoal()">คำนวณถึงเลเวล</button>
+<button onclick="calc()">คำนวณ</button>
 
-<div class="box" id="resultGoal"></div>
-
-<hr>
-
-<div class="box">
-<h3>📊 โหมด X วัน</h3>
-
-เล่นอีกกี่วัน:
-<input type="number" id="daysInput" value="7">
-
-<label>
-<input type="checkbox" id="weeklyDone2"> เควสวันนี้ทำแล้ว
-</label>
-
-<button onclick="calcDays()">คำนวณ X วัน</button>
-</div>
-
-<div class="box" id="resultDays"></div>
+<div class="box" id="result"></div>
 
 <script>
 function levelToExp(l){
@@ -114,13 +95,7 @@ function levelToExp(l){
   return 50 + (l - 1) * 10;
 }
 
-function expToLevel(exp){
-  if(exp < 50) return 0;
-  return Math.floor((exp - 50) / 10) + 1;
-}
-
-// ===== โหมดหาเลเวล =====
-function calcGoal(){
+function calc(){
   let current = +currentEl.value;
   let target = +targetEl.value;
   let lastWeekly = new Date(lastWeeklyEl.value);
@@ -144,15 +119,16 @@ function calcGoal(){
   let nextWeekly = new Date(lastWeekly);
   nextWeekly.setDate(nextWeekly.getDate() + 7);
 
-  // กรณี "ยังไม่ได้ทำวันนี้"
+  // 🔥 FIX: ถ้ายังไม่ได้ทำวันนี้ → ต้องนับ +1 ด้วย
   if(!weeklyDone && today >= lastWeekly){
     exp += 70;
     if(useWeeklyMoney) exp += 30;
+    weeklyCount++; // ⭐ จุดที่แก้
   }
 
-  // คำนวณ weekly สูงสุด
+  // คำนวณ max weekly
   let temp = new Date(nextWeekly);
-  let maxWeekly = 0;
+  let maxWeekly = weeklyCount;
   while(temp <= end){
     maxWeekly++;
     temp.setDate(temp.getDate() + 7);
@@ -168,7 +144,7 @@ function calcGoal(){
     exp += 20;
     if(useDailyMoney && days <= dailyLimit) exp += 30;
 
-    // weekly
+    // weekly ตาม timeline จริง
     if(today >= nextWeekly && weeklyCount < weeklyLimit){
       exp += 70;
       if(useWeeklyMoney) exp += 30;
@@ -182,63 +158,14 @@ function calcGoal(){
 
   let missing = Math.max(0, targetExp - exp);
 
-  resultGoal.innerHTML = `
+  result.innerHTML = `
 📅 ถึงวันที่: ${today.toLocaleDateString()}<br><br>
 📦 แต้ม: ${exp} / ${targetExp}<br>
 ❗ ขาด: ${missing}<br><br>
 🔁 Weekly: ${weeklyCount}/${maxWeekly}<br>
 ⏳ ${days} วัน<br>
 🎯 ${exp >= targetExp ? "ทัน ✅" : "ไม่ทัน ❌"}
-`;
-}
-
-// ===== โหมด X วัน =====
-function calcDays(){
-  let daysInput = +daysInputEl.value;
-  let current = +currentEl.value;
-  let lastWeekly = new Date(lastWeeklyEl.value);
-
-  let weeklyDone = weeklyDone2El.checked;
-  let useDailyMoney = dailyMoneyEl.checked;
-  let dailyLimit = +dailyDaysEl.value;
-  let useWeeklyMoney = weeklyMoneyEl.checked;
-  let weeklyLimit = +weeklyWeeksEl.value;
-
-  let today = new Date();
-  let exp = levelToExp(current);
-  let weeklyCount = 0;
-
-  let nextWeekly = new Date(lastWeekly);
-  nextWeekly.setDate(nextWeekly.getDate() + 7);
-
-  if(!weeklyDone && today >= lastWeekly){
-    exp += 70;
-    if(useWeeklyMoney) exp += 30;
-  }
-
-  for(let d=1; d<=daysInput; d++){
-    exp += 20;
-    if(useDailyMoney && d <= dailyLimit) exp += 30;
-
-    if(today >= nextWeekly && weeklyCount < weeklyLimit){
-      exp += 70;
-      if(useWeeklyMoney) exp += 30;
-
-      weeklyCount++;
-      nextWeekly.setDate(nextWeekly.getDate() + 7);
-    }
-
-    today.setDate(today.getDate() + 1);
-  }
-
-  let level = expToLevel(exp);
-
-  resultDays.innerHTML = `
-📦 แต้มรวม: ${exp}<br>
-📈 เลเวล: ${level}<br><br>
-🔁 Weekly: ${weeklyCount}<br>
-⏳ ${daysInput} วัน
-`;
+  `;
 }
 
 // bind
@@ -247,7 +174,6 @@ const targetEl = document.getElementById("target");
 const lastWeeklyEl = document.getElementById("lastWeekly");
 
 const weeklyDoneEl = document.getElementById("weeklyDone");
-const weeklyDone2El = document.getElementById("weeklyDone2");
 
 const dailyMoneyEl = document.getElementById("dailyMoney");
 const dailyDaysEl = document.getElementById("dailyDays");
@@ -255,10 +181,7 @@ const dailyDaysEl = document.getElementById("dailyDays");
 const weeklyMoneyEl = document.getElementById("weeklyMoney");
 const weeklyWeeksEl = document.getElementById("weeklyWeeks");
 
-const daysInputEl = document.getElementById("daysInput");
-
-const resultGoal = document.getElementById("resultGoal");
-const resultDays = document.getElementById("resultDays");
+const result = document.getElementById("result");
 const weeklyInfo = document.getElementById("weeklyInfo");
 </script>
 
