@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Battle Pass Calculator PRO+</title>
+<title>Battle Pass Calculator ULTIMATE</title>
 
 <style>
 body {
@@ -36,31 +36,34 @@ button {
   cursor: pointer;
 }
 
-.small {
-  font-size: 12px;
-  color: #aaa;
-}
+.small { font-size: 12px; color: #aaa; }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Battle Pass Calculator PRO+</h2>
+<h2>🔥 Battle Pass Calculator ULTIMATE</h2>
 
 <div class="box">
+<h3>🎯 โหมดหา "ถึงเลเวล"</h3>
+
 เลเวลปัจจุบัน:
 <input type="number" id="current" value="0">
 
 เลเวลเป้าหมาย:
 <input type="number" id="target" value="100">
 
-วันที่ทำ Weekly ล่าสุด:
+วันที่ Weekly ล่าสุด:
 <input type="date" id="lastWeekly">
+
+<label>
+<input type="checkbox" id="weeklyDone"> เควสวันนี้ทำแล้ว
+</label>
 </div>
 
 <div class="box">
 <h3>🟡 Daily</h3>
-✔ ฆ่ามอน (+20/วัน)<br><br>
+✔ ฆ่ามอน (+20)<br>
 
 <label>
 <input type="checkbox" id="dailyMoney"> เควสเงิน (+30)
@@ -72,7 +75,7 @@ button {
 
 <div class="box">
 <h3>🔵 Weekly</h3>
-✔ ฆ่าบอส (+70)<br><br>
+✔ ฆ่าบอส (+70)<br>
 
 <label>
 <input type="checkbox" id="weeklyMoney"> เควสเงิน (+30)
@@ -84,26 +87,49 @@ button {
 <div class="small" id="weeklyInfo"></div>
 </div>
 
-<button onclick="calc()">คำนวณ</button>
+<button onclick="calcGoal()">คำนวณถึงเลเวล</button>
 
-<div class="box" id="result"></div>
+<div class="box" id="resultGoal"></div>
+
+<hr>
+
+<div class="box">
+<h3>📊 โหมด X วัน</h3>
+
+เล่นอีกกี่วัน:
+<input type="number" id="daysInput" value="7">
+
+<label>
+<input type="checkbox" id="weeklyDone2"> เควสวันนี้ทำแล้ว
+</label>
+
+<button onclick="calcDays()">คำนวณ X วัน</button>
+</div>
+
+<div class="box" id="resultDays"></div>
 
 <script>
-function levelToExp(level){
-  if(level <= 0) return 0;
-  return 50 + (level - 1) * 10;
+function levelToExp(l){
+  if(l <= 0) return 0;
+  return 50 + (l - 1) * 10;
 }
 
-function calc(){
-  let current = Number(currentEl.value);
-  let target = Number(targetEl.value);
+function expToLevel(exp){
+  if(exp < 50) return 0;
+  return Math.floor((exp - 50) / 10) + 1;
+}
+
+// ===== โหมดหาเลเวล =====
+function calcGoal(){
+  let current = +currentEl.value;
+  let target = +targetEl.value;
   let lastWeekly = new Date(lastWeeklyEl.value);
 
+  let weeklyDone = weeklyDoneEl.checked;
   let useDailyMoney = dailyMoneyEl.checked;
-  let dailyMoneyDays = Number(dailyDaysEl.value);
-
+  let dailyLimit = +dailyDaysEl.value;
   let useWeeklyMoney = weeklyMoneyEl.checked;
-  let userWeeklyWeeks = Number(weeklyWeeksEl.value);
+  let weeklyLimitUser = +weeklyWeeksEl.value;
 
   let start = new Date("2026-04-22");
   let end = new Date("2026-06-24");
@@ -115,40 +141,37 @@ function calc(){
   let days = 0;
   let weeklyCount = 0;
 
-  // 🔥 คำนวณ weekly สูงสุดที่เป็นไปได้
   let nextWeekly = new Date(lastWeekly);
   nextWeekly.setDate(nextWeekly.getDate() + 7);
 
-  let maxWeekly = 0;
-  let temp = new Date(nextWeekly);
+  // กรณี "ยังไม่ได้ทำวันนี้"
+  if(!weeklyDone && today >= lastWeekly){
+    exp += 70;
+    if(useWeeklyMoney) exp += 30;
+  }
 
+  // คำนวณ weekly สูงสุด
+  let temp = new Date(nextWeekly);
+  let maxWeekly = 0;
   while(temp <= end){
     maxWeekly++;
     temp.setDate(temp.getDate() + 7);
   }
 
-  // clamp
-  let weeklyLimit = Math.min(userWeeklyWeeks, maxWeekly);
-
+  let weeklyLimit = Math.min(maxWeekly, weeklyLimitUser);
   weeklyInfo.innerHTML = `ทำได้สูงสุด: ${maxWeekly} ครั้ง`;
 
-  // 🔥 simulation ทีละวัน
   while(exp < targetExp && today <= end){
     days++;
 
-    // DAILY
+    // daily
     exp += 20;
-    if(useDailyMoney && days <= dailyMoneyDays){
-      exp += 30;
-    }
+    if(useDailyMoney && days <= dailyLimit) exp += 30;
 
-    // WEEKLY (เกิดตามวันจริง)
+    // weekly
     if(today >= nextWeekly && weeklyCount < weeklyLimit){
       exp += 70;
-
-      if(useWeeklyMoney){
-        exp += 30;
-      }
+      if(useWeeklyMoney) exp += 30;
 
       weeklyCount++;
       nextWeekly.setDate(nextWeekly.getDate() + 7);
@@ -157,23 +180,65 @@ function calc(){
     today.setDate(today.getDate() + 1);
   }
 
-  let success = exp >= targetExp;
   let missing = Math.max(0, targetExp - exp);
-  let missingLevel = Math.ceil(missing / 10);
 
-  result.innerHTML = `
-📅 ถึงเลเวลวันที่: ${today.toLocaleDateString()}<br><br>
+  resultGoal.innerHTML = `
+📅 ถึงวันที่: ${today.toLocaleDateString()}<br><br>
+📦 แต้ม: ${exp} / ${targetExp}<br>
+❗ ขาด: ${missing}<br><br>
+🔁 Weekly: ${weeklyCount}/${maxWeekly}<br>
+⏳ ${days} วัน<br>
+🎯 ${exp >= targetExp ? "ทัน ✅" : "ไม่ทัน ❌"}
+`;
+}
 
-📦 แต้มทั้งหมด: ${exp}<br>
-🎯 แต้มที่ต้องใช้: ${targetExp}<br><br>
+// ===== โหมด X วัน =====
+function calcDays(){
+  let daysInput = +daysInputEl.value;
+  let current = +currentEl.value;
+  let lastWeekly = new Date(lastWeeklyEl.value);
 
-❗ ขาดอีก: ${missing} แต้ม (${missingLevel} เลเวล)<br><br>
+  let weeklyDone = weeklyDone2El.checked;
+  let useDailyMoney = dailyMoneyEl.checked;
+  let dailyLimit = +dailyDaysEl.value;
+  let useWeeklyMoney = weeklyMoneyEl.checked;
+  let weeklyLimit = +weeklyWeeksEl.value;
 
-⏳ ใช้เวลา: ${days} วัน<br>
-🔁 Weekly ที่ใช้: ${weeklyCount}/${maxWeekly}<br><br>
+  let today = new Date();
+  let exp = levelToExp(current);
+  let weeklyCount = 0;
 
-🎯 สถานะ: ${success ? "ทัน ✅" : "ไม่ทัน ❌"}
-  `;
+  let nextWeekly = new Date(lastWeekly);
+  nextWeekly.setDate(nextWeekly.getDate() + 7);
+
+  if(!weeklyDone && today >= lastWeekly){
+    exp += 70;
+    if(useWeeklyMoney) exp += 30;
+  }
+
+  for(let d=1; d<=daysInput; d++){
+    exp += 20;
+    if(useDailyMoney && d <= dailyLimit) exp += 30;
+
+    if(today >= nextWeekly && weeklyCount < weeklyLimit){
+      exp += 70;
+      if(useWeeklyMoney) exp += 30;
+
+      weeklyCount++;
+      nextWeekly.setDate(nextWeekly.getDate() + 7);
+    }
+
+    today.setDate(today.getDate() + 1);
+  }
+
+  let level = expToLevel(exp);
+
+  resultDays.innerHTML = `
+📦 แต้มรวม: ${exp}<br>
+📈 เลเวล: ${level}<br><br>
+🔁 Weekly: ${weeklyCount}<br>
+⏳ ${daysInput} วัน
+`;
 }
 
 // bind
@@ -181,13 +246,19 @@ const currentEl = document.getElementById("current");
 const targetEl = document.getElementById("target");
 const lastWeeklyEl = document.getElementById("lastWeekly");
 
+const weeklyDoneEl = document.getElementById("weeklyDone");
+const weeklyDone2El = document.getElementById("weeklyDone2");
+
 const dailyMoneyEl = document.getElementById("dailyMoney");
 const dailyDaysEl = document.getElementById("dailyDays");
 
 const weeklyMoneyEl = document.getElementById("weeklyMoney");
 const weeklyWeeksEl = document.getElementById("weeklyWeeks");
 
-const result = document.getElementById("result");
+const daysInputEl = document.getElementById("daysInput");
+
+const resultGoal = document.getElementById("resultGoal");
+const resultDays = document.getElementById("resultDays");
 const weeklyInfo = document.getElementById("weeklyInfo");
 </script>
 
